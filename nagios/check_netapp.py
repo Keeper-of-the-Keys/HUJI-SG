@@ -59,6 +59,7 @@ snmp_vers = 1
 string_result = []
 string_performance_data = []
 
+# TODO: move script to use snmp library.
 def snmpGetter(*oids):
 
     global snmp_host, snmp_comm, snmp_port, snmp_vers
@@ -107,6 +108,11 @@ def cpuCheck():
     string_performance_data += ['cpu={cur};{w};{c};0;100'.format(**perfdata)]
 
 def nfsiopsCheck():
+    '''Check NFS IOops/second
+
+    Function reads 2 samples about one second apart of iocount + timestamp and 
+    calculates NFS IOops/second
+    '''
     oids = [
         oid_uptime,
         oid_nfsops
@@ -144,6 +150,7 @@ def nfsiopsCheck():
         **perfdata)]
 
 def fanCheck():
+    global exit_warning, exit_critical, exit_status, exit_ok
     try:
         result = snmpGetter(oid_failed_fan)
     except Exception as e:
@@ -155,8 +162,11 @@ def fanCheck():
     string_result += ['Failed Fans: {}'.format(result[0][1])]
     if result[0][1] > 0:
         exit_status = exit_critical
+    elif exit_status == exit_unknown:
+        exit_status = exit_ok
 
 def psuCheck():
+    global exit_warning, exit_critical, exit_status, exit_ok
     try:
         result = snmpGetter(oid_failed_psu)
     except Exception as e:
@@ -168,6 +178,8 @@ def psuCheck():
     string_result += ['Failed PSUs: {}'.format(result[0][1])]
     if result[0][1] > 0:
         exit_status = exit_critical
+    elif exit_status == exit_unknown:
+        exit_status = exit_ok
 
 def thresholdCheck(var):
     """Check whether prvided value is within threshold
@@ -194,7 +206,7 @@ if __name__ == "__main__":
     
     parser.add_argument('-H', '--host', help='Hostname or IP address, if no ' +
                         'other arguments are specified all available info ' +
-                        'will be printed', dest = 'snmp_host')
+                        'will be printed', dest = 'snmp_host', required = True)
     parser.add_argument('-p', '--port', dest = 'snmp_port', default = 161,
                         help = 'SNMP Port, default 161')
     parser.add_argument('-C', help='SNMP community read string', 
@@ -239,10 +251,13 @@ if __name__ == "__main__":
 
     for result in string_result[1:-1]:
         print result
-    
-    print string_result[-1] + "|"
+    if len(string_performance_data) > 0:
+        print string_result[-1] + "|"
 
-    for perfdata in string_performance_data:
-        print perfdata
+        for perfdata in string_performance_data:
+            print perfdata
+
+    else:
+        print string_result[-1]
 
     exit(exit_status)
