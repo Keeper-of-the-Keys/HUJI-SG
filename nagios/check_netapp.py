@@ -247,7 +247,6 @@ if __name__ == "__main__":
         print "OK - " + string_result[0]
     else:
         print "UNKNOWN"
-        exit(exit_status)
 
     for result in string_result[1:-1]:
         print result
