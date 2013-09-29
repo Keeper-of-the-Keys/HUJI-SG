@@ -15,9 +15,13 @@
 ###############################################################################
 # 
 
+# The following two lines are a workaround for a local issue, you may very well
+# not have it and not need them.
+import os
+os.environ['PYTHON_EGG_CACHE'] = "/var/spool/nagios/python-eggs/"
+
 from snmp import *
 import argparse
-import os
 
 exit_codes = dict()
 exit_codes['ok'] = 0
@@ -126,7 +130,7 @@ if __name__ == "__main__":
         check_temp(args.snmp_host, args.snmp_port, 
                    snmpCreateAuthData(args.snmp_vers, args.snmp_comm))
     except Exception as e:
-        print "UNKNOWN" + e
+        print "UNKNOWN" + str(e)
         set_exit(exit_codes['unknown'])
         exit(exit_code)
 
