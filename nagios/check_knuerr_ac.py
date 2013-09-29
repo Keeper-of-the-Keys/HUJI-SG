@@ -130,7 +130,7 @@ if __name__ == "__main__":
         check_temp(args.snmp_host, args.snmp_port, 
                    snmpCreateAuthData(args.snmp_vers, args.snmp_comm))
     except Exception as e:
-        print "UNKNOWN" + str(e)
+        print "UNKNOWN: " + str(e)
         set_exit(exit_codes['unknown'])
         exit(exit_code)
 
