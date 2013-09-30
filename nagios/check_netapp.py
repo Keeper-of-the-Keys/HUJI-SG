@@ -32,12 +32,15 @@
 
 # The following two lines are a workaround for a local issue, you may very well
 # not have it and not need them.
-import os
-os.environ['PYTHON_EGG_CACHE'] = "/var/spool/nagios/python-eggs/"
-
-from pysnmp.entity.rfc3413.oneliner import cmdgen
-import time
-import argparse
+try:
+    import os
+    os.environ['PYTHON_EGG_CACHE'] = "/var/spool/nagios/python-eggs/"
+    from pysnmp.entity.rfc3413.oneliner import cmdgen
+    import time
+    import argparse
+except Exception as e:
+    print "UNKNOWN: " + str(e)
+    exit(3)
 
 exit_ok = 0
 exit_warning = 1
