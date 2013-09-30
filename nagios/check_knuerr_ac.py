@@ -15,20 +15,40 @@
 ###############################################################################
 # 
 
-# The following two lines are a workaround for a local issue, you may very well
-# not have it and not need them.
-import os
-os.environ['PYTHON_EGG_CACHE'] = "/var/spool/nagios/python-eggs/"
-
-from snmp import *
-import argparse
-
 exit_codes = dict()
 exit_codes['ok'] = 0
 exit_codes['warning'] = 1
 exit_codes['critical'] = 2
 exit_codes['unknown'] = 3
 exit_code = exit_codes['unknown']
+
+def set_exit(status):
+    global exit_code
+    if status < exit_code:
+        exit_code = status
+
+# The following two lines are a workaround for a local issue, you may very well
+# not have it and not need them.
+try:
+    import os
+    os.environ['PYTHON_EGG_CACHE'] = "/var/spool/nagios/python-eggs/"
+except Exception as e:
+    print "UNKNOWN: " + str(e)
+    set_exit(exit_codes['unknown'])
+    exit(exit_code)
+
+try:
+    from snmp import *
+except Exception as e:
+    print "UNKNOWN: failed to import HUJI SNMP library, attempt returned following error:\n" + str(e)
+    set_exit(exit_codes['unknown'])
+    exit(exit_code)
+try:
+    import argparse
+except Exception as e:
+    print "UNKNOWN: " + str(e)
+    set_exit(exit_codes['unknown'])
+    exit(exit_code)
 
 string_results = []
 string_perfdata = []
@@ -62,7 +82,7 @@ def check_temp(snmp_host, snmp_port, auth_data):
     else:
         set_exit(exit_codes['ok'])
 
-    string_results += ["water_in = {}, warn = {}, crit = {}".format(
+    string_results += ["water_in: {}, warn: {}, crit: {}".format(
         float(results[oid_temp_water_in])/10, 
         float(results[oid_temp_water_in_warn])/10,
         float(results[oid_temp_water_in_crit])/10
@@ -73,26 +93,21 @@ def check_temp(snmp_host, snmp_port, auth_data):
         float(results[oid_temp_water_in_warn])/10,
         float(results[oid_temp_water_in_crit])/10
     )]
- 
-def set_exit(status):
-    global exit_code
-    if status < exit_code:
-        exit_code = status
 
 def output_and_exit():
     global exit_code, exit_codes, string_results, string_perfdata
 
     if len(string_results) == 1 and len(string_perfdata) > 0:
-        pipe_char = '|'
+        pipe_char = '\n|'
     else:
         pipe_char = ''
 
     if exit_code == exit_codes['critical']:
-        print "CRITICAL - " + string_results[0] + pipe_char
+        print "CRITICAL: " + string_results[0] + pipe_char
     elif exit_code == exit_codes['warning']:
-        print "WARNING - " + string_results[0] + pipe_char
+        print "WARNING: " + string_results[0] + pipe_char
     elif exit_code == exit_codes['ok']:
-        print "OK - " + string_results[0] + pipe_char
+        print "OK: " + string_results[0] + pipe_char
     else:
         print "UNKNOWN"
 
