@@ -65,6 +65,15 @@ def check_temp(snmp_host, snmp_port, auth_data):
     oid_temp_water_in_crit = oid_vendor + '.2.1.1.9.4.0'
     oids.append(oid_temp_water_in_crit)
 
+    oid_temp_water_out = oid_vendor + '.2.1.1.8.2.0'
+    oids.append(oid_temp_water_out)
+
+    oid_temp_water_out_warn = oid_vendor + '.2.1.1.8.3.0'
+    oids.append(oid_temp_water_out_warn)
+
+    oid_temp_water_out_crit = oid_vendor + '.2.1.1.8.4.0'
+    oids.append(oid_temp_water_out_crit)
+
     results = dict(snmpGetter(snmp_host, snmp_port, auth_data, *oids))
 
     for (key, value) in results.iteritems():
@@ -87,6 +96,18 @@ def check_temp(snmp_host, snmp_port, auth_data):
         float(results[oid_temp_water_in])/10, 
         float(results[oid_temp_water_in_warn])/10,
         float(results[oid_temp_water_in_crit])/10
+    )]
+
+    string_results += ["water_out: {}, warn: {}, crit: {}".format(
+        float(results[oid_temp_water_out])/10, 
+        float(results[oid_temp_water_out_warn])/10,
+        float(results[oid_temp_water_out_crit])/10
+    )]
+
+    string_perfdata += ['water_out={};{};{};0;30'.format(
+        float(results[oid_temp_water_out])/10, 
+        float(results[oid_temp_water_out_warn])/10,
+        float(results[oid_temp_water_out_crit])/10
     )]
 
 def output_and_exit():
