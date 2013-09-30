@@ -55,6 +55,9 @@ def check_temp(snmp_host, snmp_port, auth_data):
 
     oid_temp_rear = oid_vendor + '.2.1.1.1.3.0'
     oids.append(oid_temp_rear)
+
+    oid_temp_front = oid_vendor + '.2.1.1.2.3.0'
+    oids.append(oid_temp_front)
     
     oid_temp_water_in = oid_vendor + '.2.1.1.9.2.0'
     oids.append(oid_temp_water_in)
@@ -109,6 +112,15 @@ def check_temp(snmp_host, snmp_port, auth_data):
         float(results[oid_temp_water_out_warn])/10,
         float(results[oid_temp_water_out_crit])/10
     )]
+
+    string_perfdata += ['temp_front={};;;0;30'.format(
+        float(results[oid_temp_front])/10
+    )]
+
+    string_perfdata += ['temp_rear={};;;0;30'.format(
+        float(results[oid_temp_rear])/10
+    )]
+    
 
 def output_and_exit():
     global exit_code, exit_codes, string_results, string_perfdata
