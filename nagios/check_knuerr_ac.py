@@ -32,6 +32,7 @@ def set_exit(status):
 try:
     import os
     os.environ['PYTHON_EGG_CACHE'] = "/var/spool/nagios/python-eggs/"
+    import argparse
 except Exception as e:
     print "UNKNOWN: " + str(e)
     set_exit(exit_codes['unknown'])
@@ -41,12 +42,6 @@ try:
     from snmp import *
 except Exception as e:
     print "UNKNOWN: failed to import HUJI SNMP library, attempt returned following error:\n" + str(e)
-    set_exit(exit_codes['unknown'])
-    exit(exit_code)
-try:
-    import argparse
-except Exception as e:
-    print "UNKNOWN: " + str(e)
     set_exit(exit_codes['unknown'])
     exit(exit_code)
 
