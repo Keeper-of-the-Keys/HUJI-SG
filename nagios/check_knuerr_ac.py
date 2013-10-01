@@ -24,8 +24,12 @@ exit_code = exit_codes['unknown']
 
 def set_exit(status):
     global exit_code
-    if status < exit_code:
-        exit_code = status
+    if exit_code == exit_codes['unknown']:
+        if status < exit_code:
+            exit_code = status
+    else:
+        if status > exit_code:
+            exit_code = status
 
 # The following two lines are a workaround for a local issue, you may very well
 # not have it and not need them.
@@ -47,6 +51,14 @@ except Exception as e:
 
 string_results = []
 string_perfdata = []
+
+def verify_levels(level, warn, crit):
+    if level >= crit:
+        set_exit(exit_codes['critical'])
+    elif level >= warn:
+        set_exit(exit_codes['warning'])
+    else:
+        set_exit(exit_codes['ok'])
 
 def check_temp(snmp_host, snmp_port, auth_data):
     global exit_codes, string_results, string_perfdata
@@ -77,17 +89,29 @@ def check_temp(snmp_host, snmp_port, auth_data):
     oid_temp_water_out_crit = oid_vendor + '.2.1.1.8.4.0'
     oids.append(oid_temp_water_out_crit)
 
+    oid_humidity = oid_vendor + '.2.1.1.7.2.0'
+    oids.append(oid_humidity)
+
+    oid_humidity_warn = oid_vendor + '.2.1.1.7.3.0'
+    oids.append(oid_humidity_warn)
+
+    oid_humidity_crit = oid_vendor + '.2.1.1.7.4.0'
+    oids.append(oid_humidity_crit)
+
     results = dict(snmpGetter(snmp_host, snmp_port, auth_data, *oids))
 
     for (key, value) in results.iteritems():
         results[str(key)] = results.pop(key)
 
-    if results[oid_temp_water_in] >= results[oid_temp_water_in_crit]:
-        set_exit(exit_codes['critical'])
-    elif results[oid_temp_water_in]  >= results[oid_temp_water_in_warn]:
-        set_exit(exit_codes['warning'])
-    else:
-        set_exit(exit_codes['ok'])
+    verify_levels(results[oid_temp_water_in], results[oid_temp_water_in_warn],
+                  results[oid_temp_water_in_crit])
+
+    verify_levels(results[oid_temp_water_out], results[oid_temp_water_out_warn],
+                  results[oid_temp_water_out_crit])
+
+    verify_levels(results[oid_humidity], results[oid_humidity_warn],
+                  results[oid_humidity_crit])
+
 
     string_results += ["water_in: {}, warn: {}, crit: {}".format(
         float(results[oid_temp_water_in])/10, 
@@ -111,6 +135,18 @@ def check_temp(snmp_host, snmp_port, auth_data):
         float(results[oid_temp_water_out])/10, 
         float(results[oid_temp_water_out_warn])/10,
         float(results[oid_temp_water_out_crit])/10
+    )]
+
+    string_results += ['humidity: {}%, warn: {}%, crit: {}%'.format(
+        float(results[oid_humidity])/10,
+        float(results[oid_humidity_warn])/10,
+        float(results[oid_humidity_crit])/10
+    )]
+
+    string_perfdata += ['humidity={};{};{};0;100'.format(
+        float(results[oid_humidity])/10,
+        float(results[oid_humidity_warn])/10,
+        float(results[oid_humidity_crit])/10
     )]
 
     string_perfdata += ['temp_front={};;;0;30'.format(
