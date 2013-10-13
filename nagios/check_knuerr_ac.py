@@ -13,7 +13,19 @@
 ####################################################
 
 ###############################################################################
-# 
+# Written by E.S. Rosenberg 5774/2013 
+#
+# This script requieres PySNMP.
+# If PySNMP is not installed in the "main" python environment create a virtual
+# python environment and install pysnmp inside of it:
+#
+# python /usr/bin/virtualenv /path/to/desired/location
+#
+# The path to virtualenv may vary.
+#
+# @author: E.S. Rosenberg (Keeper of the Keys) <esr at mail dot hebrew dot edu>
+# @license: GPLv2
+###############################################################################
 
 exit_codes = dict()
 exit_codes['ok'] = 0
@@ -21,6 +33,9 @@ exit_codes['warning'] = 1
 exit_codes['critical'] = 2
 exit_codes['unknown'] = 3
 exit_code = exit_codes['unknown']
+
+string_results = []
+string_perfdata = []
 
 def set_exit(status):
     global exit_code
@@ -31,26 +46,20 @@ def set_exit(status):
         if status > exit_code:
             exit_code = status
 
-# The following two lines are a workaround for a local issue, you may very well
-# not have it and not need them.
+### Imports ###
 try:
     import os
+    # Python egg cash definition needed on systems where the running user lacks
+    # write permission to the running dir.
     os.environ['PYTHON_EGG_CACHE'] = "/var/spool/nagios/python-eggs/"
     import argparse
+    from snmp import *
 except Exception as e:
     print "UNKNOWN: " + str(e)
     set_exit(exit_codes['unknown'])
     exit(exit_code)
 
-try:
-    from snmp import *
-except Exception as e:
-    print "UNKNOWN: failed to import HUJI SNMP library, attempt returned following error:\n" + str(e)
-    set_exit(exit_codes['unknown'])
-    exit(exit_code)
-
-string_results = []
-string_perfdata = []
+### End Imports ###
 
 def verify_levels(level, warn, crit):
     if level >= crit:
@@ -62,6 +71,8 @@ def verify_levels(level, warn, crit):
 
 def check_temp(snmp_host, snmp_port, auth_data):
     global exit_codes, string_results, string_perfdata
+
+    #### Setup OIDs ####
     oid_vendor = '1.3.6.1.4.1.2769'
     oids = []
 
@@ -97,6 +108,7 @@ def check_temp(snmp_host, snmp_port, auth_data):
 
     oid_humidity_crit = oid_vendor + '.2.1.1.7.4.0'
     oids.append(oid_humidity_crit)
+    #### End Setup OIDs ####
 
     results = dict(snmpGetter(snmp_host, snmp_port, auth_data, *oids))
 
@@ -111,7 +123,6 @@ def check_temp(snmp_host, snmp_port, auth_data):
 
     verify_levels(results[oid_humidity], results[oid_humidity_warn],
                   results[oid_humidity_crit])
-
 
     string_results += ["water_in: {}, warn: {}, crit: {}".format(
         float(results[oid_temp_water_in])/10, 
