@@ -239,8 +239,6 @@ if __name__ == "__main__":
 
     fanCheck()
     psuCheck()
-    
-    
 
     if exit_status == exit_critical:
         print "CRITICAL - " + string_result[0]

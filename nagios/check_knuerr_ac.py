@@ -73,6 +73,9 @@ def check_temp(snmp_host, snmp_port, auth_data):
     global exit_codes, string_results, string_perfdata
 
     #### Setup OIDs ####
+    # The following OIDs are according to KNUERR-COOLCON-MIB-V10.mib
+    # Please make sure your products MIB is the same or modify this section.
+
     oid_vendor = '1.3.6.1.4.1.2769'
     oids = []
 
