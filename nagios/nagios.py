@@ -48,26 +48,17 @@ def output_and_exit():
     else:
         pipe_char = ''
 
-#    if exit_code == exit_codes['critical']:
-#        print "CRITICAL: " + string_results[0] + pipe_char
-#    elif exit_code == exit_codes['warning']:
-#        print "WARNING: " + string_results[0] + pipe_char
-#    elif exit_code == exit_codes['ok']:
-#        print "OK: " + string_results[0] + pipe_char
-#    else:
-#        print "UNKNOWN"
-
     if exit_code == exit_codes['critical']:
-        output = "CRITICAL: " #+ string_results[0] + pipe_char
+        output = "CRITICAL"
     elif exit_code == exit_codes['warning']:
-        output = "WARNING: " #+ string_results[0] + pipe_char
+        output = "WARNING"
     elif exit_code == exit_codes['ok']:
-        output = "OK: " #+ string_results[0] + pipe_char
+        output = "OK"
     else:
         output = "UNKNOWN"
 
     if len(string_results) >= 1:
-        output += string_results[0] + pipe_char
+        output += ": " + string_results[0] + pipe_char
 
     print output
  
