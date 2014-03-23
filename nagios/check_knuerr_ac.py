@@ -27,25 +27,6 @@
 # @license: GPLv2
 ###############################################################################
 
-exit_codes = dict()
-exit_codes['ok'] = 0
-exit_codes['warning'] = 1
-exit_codes['critical'] = 2
-exit_codes['unknown'] = 3
-exit_code = exit_codes['unknown']
-
-string_results = []
-string_perfdata = []
-
-def set_exit(status):
-    global exit_code
-    if exit_code == exit_codes['unknown']:
-        if status < exit_code:
-            exit_code = status
-    else:
-        if status > exit_code:
-            exit_code = status
-
 ### Imports ###
 try:
     import os
@@ -53,25 +34,24 @@ try:
     # write permission to the running dir.
     os.environ['PYTHON_EGG_CACHE'] = "/var/spool/nagios/python-eggs/"
     import argparse
+    import nagios
     from snmp import *
 except Exception as e:
     print "UNKNOWN: " + str(e)
-    set_exit(exit_codes['unknown'])
-    exit(exit_code)
+    nagios.set_exit(nagios.exit_codes['unknown'])
+    exit(nagios.exit_code)
 
 ### End Imports ###
 
 def verify_levels(level, warn, crit):
     if level >= crit:
-        set_exit(exit_codes['critical'])
+        nagios.set_exit(nagios.exit_codes['critical'])
     elif level >= warn:
-        set_exit(exit_codes['warning'])
+        nagios.set_exit(nagios.exit_codes['warning'])
     else:
-        set_exit(exit_codes['ok'])
+        nagios.set_exit(nagios.exit_codes['ok'])
 
 def check_temp(snmp_host, snmp_port, auth_data):
-    global exit_codes, string_results, string_perfdata
-
     #### Setup OIDs ####
     # The following OIDs are according to KNUERR-COOLCON-MIB-V10.mib
     # Please make sure your products MIB is the same or modify this section.
@@ -127,93 +107,60 @@ def check_temp(snmp_host, snmp_port, auth_data):
     verify_levels(results[oid_humidity], results[oid_humidity_warn],
                   results[oid_humidity_crit])
 
-    string_results += ["water_in: {}, warn: {}, crit: {}".format(
+    nagios.string_results += ["water_in: {}, warn: {}, crit: {}".format(
         float(results[oid_temp_water_in])/10, 
         float(results[oid_temp_water_in_warn])/10,
         float(results[oid_temp_water_in_crit])/10
     )]
 
-    string_perfdata += ['water_in={};{};{};0;30'.format(
+    nagios.string_perfdata += ['water_in={};{};{};0;30'.format(
         float(results[oid_temp_water_in])/10, 
         float(results[oid_temp_water_in_warn])/10,
         float(results[oid_temp_water_in_crit])/10
     )]
 
-    string_results += ["water_out: {}, warn: {}, crit: {}".format(
+    nagios.string_results += ["water_out: {}, warn: {}, crit: {}".format(
         float(results[oid_temp_water_out])/10, 
         float(results[oid_temp_water_out_warn])/10,
         float(results[oid_temp_water_out_crit])/10
     )]
 
-    string_perfdata += ['water_out={};{};{};0;30'.format(
+    nagios.string_perfdata += ['water_out={};{};{};0;30'.format(
         float(results[oid_temp_water_out])/10, 
         float(results[oid_temp_water_out_warn])/10,
         float(results[oid_temp_water_out_crit])/10
     )]
 
-    string_results += ['humidity: {}%, warn: {}%, crit: {}%'.format(
+    nagios.string_results += ['humidity: {}%, warn: {}%, crit: {}%'.format(
         float(results[oid_humidity])/10,
         float(results[oid_humidity_warn])/10,
         float(results[oid_humidity_crit])/10
     )]
 
-    string_perfdata += ['humidity={};{};{};0;100'.format(
+    nagios.string_perfdata += ['humidity={};{};{};0;100'.format(
         float(results[oid_humidity])/10,
         float(results[oid_humidity_warn])/10,
         float(results[oid_humidity_crit])/10
     )]
 
-    string_perfdata += ['temp_front={};;;0;30'.format(
+    nagios.string_perfdata += ['temp_front={};;;0;30'.format(
         float(results[oid_temp_front])/10
     )]
 
-    string_perfdata += ['temp_rear={};;;0;30'.format(
+    nagios.string_perfdata += ['temp_rear={};;;0;30'.format(
         float(results[oid_temp_rear])/10
     )]
     
-
-def output_and_exit():
-    global exit_code, exit_codes, string_results, string_perfdata
-
-    if len(string_results) == 1 and len(string_perfdata) > 0:
-        pipe_char = '\n|'
-    else:
-        pipe_char = ''
-
-    if exit_code == exit_codes['critical']:
-        print "CRITICAL: " + string_results[0] + pipe_char
-    elif exit_code == exit_codes['warning']:
-        print "WARNING: " + string_results[0] + pipe_char
-    elif exit_code == exit_codes['ok']:
-        print "OK: " + string_results[0] + pipe_char
-    else:
-        print "UNKNOWN"
-
-    for result in string_results[1:-1]:
-        print result
-    
-    if len(string_perfdata) > 0:
-        if len(string_results) > 1:
-            print string_results[-1] + "|"
-
-        for perfdata in string_perfdata:
-            print perfdata
-    elif len(string_results) > 1:
-        print string_results[-1]
-
-    exit(exit_code)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__file__)
 
-    parser.add_argument('-H', '--host', help='Hostname or IP address, if no ' +
+    parser.add_argument('-H', '--host', help = 'Hostname or IP address, if no ' +
                         'other arguments are specified all available info ' +
                         'will be printed', dest = 'snmp_host', required = True)
     parser.add_argument('-p', '--port', dest = 'snmp_port', default = 161,
                         help = 'SNMP Port, default 161')
-    parser.add_argument('-C', help='SNMP community read string', 
-                        default='public', dest='snmp_comm')
+    parser.add_argument('-C', help = 'SNMP community read string', 
+                        default = 'public', dest = 'snmp_comm')
     parser.add_argument('-v', dest = 'snmp_vers', default = '2c',
                         help = 'SNMP version')
 
@@ -224,7 +171,7 @@ if __name__ == "__main__":
                    snmpCreateAuthData(args.snmp_vers, args.snmp_comm))
     except Exception as e:
         print "UNKNOWN: " + str(e)
-        set_exit(exit_codes['unknown'])
-        exit(exit_code)
+        nagios.set_exit(nagios.exit_codes['unknown'])
+        exit(nagios.exit_code)
 
-    output_and_exit()
+    nagios.output_and_exit()
