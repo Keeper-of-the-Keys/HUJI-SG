@@ -28,17 +28,11 @@
 ### Imports ###
 try:
     import nagios
-except Exception as e:
-    print "UNKNOWN: " + str(e)
-    exit(3)
-
-try:
     import argparse
     from subprocess import check_output
 except Exception as e:
     print "UNKNOWN: " + str(e)
-    nagios.set_exit(nagios.exit_codes['unknown'])
-    exit(nagios.exit_code)
+    exit(3) # 3 is Nagios "unknown"
 
 ### End Imports ###
 
