@@ -39,6 +39,7 @@ try:
     import time
     import argparse
     import nagios
+    import snmp
 except Exception as e:
     print "UNKNOWN: " + str(e)
     exit(3)
@@ -56,35 +57,11 @@ snmp_vers = 1
 
 # TODO: move script to use snmp library.
 def snmpGetter(*oids):
-
     global snmp_host, snmp_comm, snmp_port, snmp_vers
-    cmdGen = cmdgen.CommandGenerator()
-    snmpModel = 0
 
-    if snmp_vers == 1:
-        snmpModel = 0
-    elif snmp_vers == '2c':
-        snmpModel = 1
-
-    errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
-        cmdgen.CommunityData(snmp_comm, mpModel = snmpModel),
-        cmdgen.UdpTransportTarget((snmp_host, snmp_port)),
-        *oids,
-        lookupNames = True,
-        lookupValues = True)
-
-    if errorIndication:
-        raise Exception("An Error Occurred: {}".format(errorIndication))
-    else:
-        if errorStatus:
-            raise Exception('%s at %s' % (
-                errorStatus.prettyPrint(),
-                errorIndex and varBinds[int(errorIndex)-1] or '?')
-            )
-        else:
-            return varBinds
-    
-    return false
+    return snmp.snmpGetter(snmp_host, snmp_port, 
+                           snmp.snmpCreateAuthData(snmp_vers, snmp_comm),
+                           *oids)
 
 def cpuCheck():
     try:
@@ -199,7 +176,7 @@ if __name__ == "__main__":
                         help = 'SNMP Port, default 161')
     parser.add_argument('-C', help='SNMP community read string', 
                         default='public', dest='snmp_comm')
-    parser.add_argument('-v', dest = 'snmp_vers', default = 1,
+    parser.add_argument('-v', dest = 'snmp_vers', default = '2c',
                         help = 'SNMP version')
     parser.add_argument('-cpu', action='store_true', dest='cpu',
                         help='Return CPU utilization')
