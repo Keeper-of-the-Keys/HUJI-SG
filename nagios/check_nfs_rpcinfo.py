@@ -28,6 +28,11 @@
 ### Imports ###
 try:
     import nagios
+except Exception as e:
+    print "UNKNOWN: " + str(e)
+    exit(3)
+
+try:
     import argparse
     from subprocess import check_output
 except Exception as e:

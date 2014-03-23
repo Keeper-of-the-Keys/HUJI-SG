@@ -29,12 +29,17 @@
 
 ### Imports ###
 try:
+    import nagios
+except Exception as e:
+    print "UNKNOWN: " + str(e)
+    exit(3)
+
+try:
     import os
     # Python egg cash definition needed on systems where the running user lacks
     # write permission to the running dir.
     os.environ['PYTHON_EGG_CACHE'] = "/var/spool/nagios/python-eggs/"
     import argparse
-    import nagios
     from snmp import *
 except Exception as e:
     print "UNKNOWN: " + str(e)
