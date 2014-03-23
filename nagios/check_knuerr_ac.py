@@ -30,11 +30,6 @@
 ### Imports ###
 try:
     import nagios
-except Exception as e:
-    print "UNKNOWN: " + str(e)
-    exit(3)
-
-try:
     import os
     # Python egg cash definition needed on systems where the running user lacks
     # write permission to the running dir.
@@ -43,8 +38,7 @@ try:
     from snmp import *
 except Exception as e:
     print "UNKNOWN: " + str(e)
-    nagios.set_exit(nagios.exit_codes['unknown'])
-    exit(nagios.exit_code)
+    exit(3) # 3 is nagios "unknown"
 
 ### End Imports ###
 
