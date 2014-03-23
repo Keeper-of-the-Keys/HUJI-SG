@@ -38,15 +38,10 @@ try:
     from pysnmp.entity.rfc3413.oneliner import cmdgen
     import time
     import argparse
+    import nagios
 except Exception as e:
     print "UNKNOWN: " + str(e)
     exit(3)
-
-exit_ok = 0
-exit_warning = 1
-exit_critical = 2
-exit_unknown = 3
-exit_status = exit_unknown
 
 oid_cpu = '1.3.6.1.4.1.789.1.2.1.3.0'
 oid_nfsops = '1.3.6.1.4.1.789.1.2.2.1.0'
@@ -58,9 +53,6 @@ snmp_host = ''
 snmp_port = 161
 snmp_comm = 'public'
 snmp_vers = 1
-
-string_result = []
-string_performance_data = []
 
 # TODO: move script to use snmp library.
 def snmpGetter(*oids):
@@ -98,17 +90,15 @@ def cpuCheck():
     try:
         result = snmpGetter(oid_cpu)
     except Exception as e:
-        exit_status = exit_unknown
+        nagios.set_exit(nagios.exit_codes['unknown'])
         print e
         return
 
     thresholdCheck(result[0][1])
-    
-    global string_result, string_performance_data
-    
-    string_result += ['CPU usage on {}: {}'.format(snmp_host, result[0][1])]
+        
+    nagios.string_results += ['CPU usage on {}: {}'.format(snmp_host, result[0][1])]
     perfdata = {'cur': result[0][1], 'w': xstr(args.warn), 'c': xstr(args.crit)}
-    string_performance_data += ['cpu={cur};{w};{c};0;100'.format(**perfdata)]
+    nagios.string_perfdata += ['cpu={cur};{w};{c};0;100'.format(**perfdata)]
 
 def nfsiopsCheck():
     '''Check NFS IOops/second
@@ -126,7 +116,7 @@ def nfsiopsCheck():
         time.sleep(1)
         samples.append(snmpGetter(*oids))
     except Exception as e:
-        exit_status = exit_unknown
+        nagios.set_exit(nagios.exit_codes['unknown'])
         print e
         return        
 
@@ -145,59 +135,54 @@ def nfsiopsCheck():
 
     thresholdCheck(nfsops)
     
-    global string_result, string_performance_data
-    string_result += ['NfsOps/Sec on {} is: {}'.format(snmp_host, nfsops)]
+    nagios.string_results += ['NfsOps/Sec on {} is: {}'.format(snmp_host, nfsops)]
     perfdata = {'val': nfsops, 'w': xstr(args.warn), 'c': xstr(args.crit), 
                 'min': 0, 'max': '' }
-    string_performance_data += ['nfsops/sec={val};{w};{c};{min};{max}'.format(
+    nagios.string_perfdata += ['nfsops/sec={val};{w};{c};{min};{max}'.format(
         **perfdata)]
 
 def fanCheck():
-    global exit_warning, exit_critical, exit_status, exit_ok
     try:
         result = snmpGetter(oid_failed_fan)
     except Exception as e:
-        exit_status = exit_unknown
+        nagios.set_exit(nagios.exit_codes['unknown'])
         print e
         return
 
-    global string_result
-    string_result += ['Failed Fans: {}'.format(result[0][1])]
+    nagios.string_results += ['Failed Fans: {}'.format(result[0][1])]
     if result[0][1] > 0:
-        exit_status = exit_critical
-    elif exit_status == exit_unknown:
-        exit_status = exit_ok
+        nagios.set_exit(nagios.exit_codes['critical'])
+    else:
+        nagios.set_exit(nagios.exit_codes['ok'])
 
 def psuCheck():
-    global exit_warning, exit_critical, exit_status, exit_ok
     try:
         result = snmpGetter(oid_failed_psu)
     except Exception as e:
-        exit_status = exit_unknown
+        nagios.set_exit(nagios.exit_codes['unknown'])
         print e
         return
 
-    global string_result
-    string_result += ['Failed PSUs: {}'.format(result[0][1])]
+    nagios.string_results += ['Failed PSUs: {}'.format(result[0][1])]
     if result[0][1] > 0:
-        exit_status = exit_critical
-    elif exit_status == exit_unknown:
-        exit_status = exit_ok
+        nagios.set_exit(nagios.exit_codes['critical'])
+    else:
+        nagios.set_exit(nagios.exit_codes['ok'])
 
 def thresholdCheck(var):
-    """Check whether prvided value is within threshold
+    """Check whether provided value is within threshold
 
     Currently this function only check that the value doesn't exceed a 
     threshold, to be truely handling thresholds the way nagios likes it it
     should be checking being inside a range.
     """
-    global args, exit_warning, exit_critical, exit_status, exit_ok
+    global args
     if args.crit != None and var >= args.crit:
-        exit_status = exit_critical
+        nagios.set_exit(nagios.exit_codes['critical'])
     elif args.warn != None and var >= args.warn and exit_status != exit_critical:
-        exit_status = exit_warning
+        nagios.set_exit(nagios.exit_codes['warning'])
     else:
-        exit_status = exit_ok
+        nagios.set_exit(nagios.exit_codes['ok'])
 
 def xstr(s):
     if s is None:
@@ -240,24 +225,4 @@ if __name__ == "__main__":
     fanCheck()
     psuCheck()
 
-    if exit_status == exit_critical:
-        print "CRITICAL - " + string_result[0]
-    elif exit_status == exit_warning:
-        print "WARNING - " + string_result[0]
-    elif exit_status == exit_ok:
-        print "OK - " + string_result[0]
-    else:
-        print "UNKNOWN"
-
-    for result in string_result[1:-1]:
-        print result
-    if len(string_performance_data) > 0:
-        print string_result[-1] + "|"
-
-        for perfdata in string_performance_data:
-            print perfdata
-
-    else:
-        print string_result[-1]
-
-    exit(exit_status)
+    nagios.output_and_exit()
