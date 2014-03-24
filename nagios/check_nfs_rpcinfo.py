@@ -27,7 +27,7 @@
 
 ### Imports ###
 try:
-    import nagios
+    import huji_cs_nagios
     import argparse
     from subprocess import check_output
 except Exception as e:
@@ -43,14 +43,14 @@ def check_procs(host):
 
     for process in process_list:
         if(rpcinfo_output.find(process) == -1):
-            nagios.set_exit(nagios.exit_codes['critical'])
-            nagios.string_results += ['process: {} not found in RPC'.format(
+            huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['critical'])
+            huji_cs_nagios.string_results += ['process: {} not found in RPC'.format(
                 process
             )]
 
-    nagios.set_exit(nagios.exit_codes['ok'])
-    if(nagios.exit_code == nagios.exit_codes['ok']):
-        nagios.string_results += ['All processes required for NFS found']
+    huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['ok'])
+    if(huji_cs_nagios.exit_code == huji_cs_nagios.exit_codes['ok']):
+        huji_cs_nagios.string_results += ['All processes required for NFS found']
 
 
 if __name__ == "__main__":
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         check_procs(args.host)
     except Exception as e:
         print "UNKNOWN: " + str(e)
-        nagios.set_exit(nagios.exit_codes['unknown'])
-        exit(nagios.exit_code)
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['unknown'])
+        exit(huji_cs_nagios.exit_code)
 
-    nagios.output_and_exit()
+    huji_cs_nagios.output_and_exit()

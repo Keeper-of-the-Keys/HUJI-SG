@@ -38,8 +38,8 @@ try:
     from pysnmp.entity.rfc3413.oneliner import cmdgen
     import time
     import argparse
-    import nagios
-    import snmp
+    import huji_cs_nagios
+    import huji_cs_snmp
 except Exception as e:
     print "UNKNOWN: " + str(e)
     exit(3)
@@ -59,23 +59,25 @@ snmp_vers = 1
 def snmpGetter(*oids):
     global snmp_host, snmp_comm, snmp_port, snmp_vers
 
-    return snmp.snmpGetter(snmp_host, snmp_port, 
-                           snmp.snmpCreateAuthData(snmp_vers, snmp_comm),
+    return huji_cs_snmp.snmpGetter(snmp_host, snmp_port, 
+                           huji_cs_snmp.snmpCreateAuthData(snmp_vers, snmp_comm),
                            *oids)
 
 def cpuCheck():
     try:
         result = snmpGetter(oid_cpu)
     except Exception as e:
-        nagios.set_exit(nagios.exit_codes['unknown'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['unknown'])
         print e
         return
 
     thresholdCheck(result[0][1])
         
-    nagios.string_results += ['CPU usage on {}: {}'.format(snmp_host, result[0][1])]
-    perfdata = {'cur': result[0][1], 'w': xstr(args.warn), 'c': xstr(args.crit)}
-    nagios.string_perfdata += ['cpu={cur};{w};{c};0;100'.format(**perfdata)]
+    huji_cs_nagios.string_results += ['CPU usage on {}: {}'.format(snmp_host, 
+                                                                   result[0][1])]
+
+    pData = {'cur': result[0][1], 'w': xstr(args.warn), 'c': xstr(args.crit)}
+    huji_cs_nagios.string_perfdata += ['cpu={cur};{w};{c};0;100'.format(**pData)]
 
 def nfsiopsCheck():
     '''Check NFS IOops/second
@@ -93,7 +95,7 @@ def nfsiopsCheck():
         time.sleep(1)
         samples.append(snmpGetter(*oids))
     except Exception as e:
-        nagios.set_exit(nagios.exit_codes['unknown'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['unknown'])
         print e
         return        
 
@@ -112,39 +114,42 @@ def nfsiopsCheck():
 
     thresholdCheck(nfsops)
     
-    nagios.string_results += ['NfsOps/Sec on {} is: {}'.format(snmp_host, nfsops)]
-    perfdata = {'val': nfsops, 'w': xstr(args.warn), 'c': xstr(args.crit), 
-                'min': 0, 'max': '' }
-    nagios.string_perfdata += ['nfsops/sec={val};{w};{c};{min};{max}'.format(
+    huji_cs_nagios.string_results += ['NfsOps/Sec on {} is: {}'.format(snmp_host,
+                                                                       nfsops)]
+
+    perfdata = {'type': 'nfsops/sec', 'val': nfsops, 'w': xstr(args.warn), 
+                'c': xstr(args.crit), 'min': 0, 'max': '' }
+
+    huji_cs_nagios.string_perfdata += ['{type}={val};{w};{c};{min};{max}'.format(
         **perfdata)]
 
 def fanCheck():
     try:
         result = snmpGetter(oid_failed_fan)
     except Exception as e:
-        nagios.set_exit(nagios.exit_codes['unknown'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['unknown'])
         print e
         return
 
-    nagios.string_results += ['Failed Fans: {}'.format(result[0][1])]
+    huji_cs_nagios.string_results += ['Failed Fans: {}'.format(result[0][1])]
     if result[0][1] > 0:
-        nagios.set_exit(nagios.exit_codes['critical'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['critical'])
     else:
-        nagios.set_exit(nagios.exit_codes['ok'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['ok'])
 
 def psuCheck():
     try:
         result = snmpGetter(oid_failed_psu)
     except Exception as e:
-        nagios.set_exit(nagios.exit_codes['unknown'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['unknown'])
         print e
         return
 
-    nagios.string_results += ['Failed PSUs: {}'.format(result[0][1])]
+    huji_cs_nagios.string_results += ['Failed PSUs: {}'.format(result[0][1])]
     if result[0][1] > 0:
-        nagios.set_exit(nagios.exit_codes['critical'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['critical'])
     else:
-        nagios.set_exit(nagios.exit_codes['ok'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['ok'])
 
 def thresholdCheck(var):
     """Check whether provided value is within threshold
@@ -155,11 +160,11 @@ def thresholdCheck(var):
     """
     global args
     if args.crit != None and var >= args.crit:
-        nagios.set_exit(nagios.exit_codes['critical'])
-    elif args.warn != None and var >= args.warn and exit_status != exit_critical:
-        nagios.set_exit(nagios.exit_codes['warning'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['critical'])
+    elif args.warn != None and var >= args.warn:
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['warning'])
     else:
-        nagios.set_exit(nagios.exit_codes['ok'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['ok'])
 
 def xstr(s):
     if s is None:
@@ -202,4 +207,4 @@ if __name__ == "__main__":
     fanCheck()
     psuCheck()
 
-    nagios.output_and_exit()
+    huji_cs_nagios.output_and_exit()

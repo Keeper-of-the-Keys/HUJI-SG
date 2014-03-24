@@ -29,13 +29,13 @@
 
 ### Imports ###
 try:
-    import nagios
+    import huji_cs_nagios
     import os
     # Python egg cash definition needed on systems where the running user lacks
     # write permission to the running dir.
     os.environ['PYTHON_EGG_CACHE'] = "/var/spool/nagios/python-eggs/"
     import argparse
-    from snmp import *
+    from huji_cs_snmp import *
 except Exception as e:
     print "UNKNOWN: " + str(e)
     exit(3) # 3 is nagios "unknown"
@@ -44,11 +44,11 @@ except Exception as e:
 
 def verify_levels(level, warn, crit):
     if level >= crit:
-        nagios.set_exit(nagios.exit_codes['critical'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['critical'])
     elif level >= warn:
-        nagios.set_exit(nagios.exit_codes['warning'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['warning'])
     else:
-        nagios.set_exit(nagios.exit_codes['ok'])
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['ok'])
 
 def check_temp(snmp_host, snmp_port, auth_data):
     #### Setup OIDs ####
@@ -106,47 +106,48 @@ def check_temp(snmp_host, snmp_port, auth_data):
     verify_levels(results[oid_humidity], results[oid_humidity_warn],
                   results[oid_humidity_crit])
 
-    nagios.string_results += ["water_in: {}, warn: {}, crit: {}".format(
+    huji_cs_nagios.string_results += ["water_in: {}, warn: {}, crit: {}".format(
         float(results[oid_temp_water_in])/10, 
         float(results[oid_temp_water_in_warn])/10,
         float(results[oid_temp_water_in_crit])/10
     )]
 
-    nagios.string_perfdata += ['water_in={};{};{};0;30'.format(
+    huji_cs_nagios.string_perfdata += ['water_in={};{};{};0;30'.format(
         float(results[oid_temp_water_in])/10, 
         float(results[oid_temp_water_in_warn])/10,
         float(results[oid_temp_water_in_crit])/10
     )]
 
-    nagios.string_results += ["water_out: {}, warn: {}, crit: {}".format(
+    huji_cs_nagios.string_results += ["water_out: {}, warn: {}, crit: {}".format(
         float(results[oid_temp_water_out])/10, 
         float(results[oid_temp_water_out_warn])/10,
         float(results[oid_temp_water_out_crit])/10
     )]
 
-    nagios.string_perfdata += ['water_out={};{};{};0;30'.format(
+    huji_cs_nagios.string_perfdata += ['water_out={};{};{};0;30'.format(
         float(results[oid_temp_water_out])/10, 
         float(results[oid_temp_water_out_warn])/10,
         float(results[oid_temp_water_out_crit])/10
     )]
 
-    nagios.string_results += ['humidity: {}%, warn: {}%, crit: {}%'.format(
+    huji_cs_nagios.string_results += ['{}: {}%, warn: {}%, crit: {}%'.format(
+        'humidity',
         float(results[oid_humidity])/10,
         float(results[oid_humidity_warn])/10,
         float(results[oid_humidity_crit])/10
     )]
 
-    nagios.string_perfdata += ['humidity={};{};{};0;100'.format(
+    huji_cs_nagios.string_perfdata += ['humidity={};{};{};0;100'.format(
         float(results[oid_humidity])/10,
         float(results[oid_humidity_warn])/10,
         float(results[oid_humidity_crit])/10
     )]
 
-    nagios.string_perfdata += ['temp_front={};;;0;30'.format(
+    huji_cs_nagios.string_perfdata += ['temp_front={};;;0;30'.format(
         float(results[oid_temp_front])/10
     )]
 
-    nagios.string_perfdata += ['temp_rear={};;;0;30'.format(
+    huji_cs_nagios.string_perfdata += ['temp_rear={};;;0;30'.format(
         float(results[oid_temp_rear])/10
     )]
     
@@ -170,7 +171,7 @@ if __name__ == "__main__":
                    snmpCreateAuthData(args.snmp_vers, args.snmp_comm))
     except Exception as e:
         print "UNKNOWN: " + str(e)
-        nagios.set_exit(nagios.exit_codes['unknown'])
-        exit(nagios.exit_code)
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['unknown'])
+        exit(huji_cs_nagios.exit_code)
 
-    nagios.output_and_exit()
+    huji_cs_nagios.output_and_exit()
