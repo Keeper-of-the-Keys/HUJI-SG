@@ -34,10 +34,15 @@
 # @license: GPLv2
 ################################################################################
 
-import socket
-import sys
-import argparse
-import re
+try:
+    import socket
+    import sys
+    import argparse
+    import re
+    import huji_cs_nagios_config
+except Exception as e:
+    print 'Failed imports: ' + str(e)
+    exit(2)
 
 # If ports ever get set per host just change the smsserver list to a list of
 # tuples.
