@@ -12,7 +12,7 @@
 ##      KeeperoftheKeys.nl       ##    /_/        ## 
 ####################################################
 
-###############################################################################
+################################################################################
 # Written by E.S. Rosenberg 5774/2014
 #
 # This script will query a SNMP Table and see if one of the values in the table
@@ -30,41 +30,11 @@
 #
 # The path to virtualenv may vary.
 #
+# Further dependencies: huji_cs_snmp, huji_cs_nagios
+#
 # @author: E.S. Rosenberg (Keeper of the Keys) <esr at mail dot hebrew dot edu>
 # @license: GPLv2
-###############################################################################
-
-exit_codes = dict()
-exit_codes['ok'] = 0
-exit_codes['warning'] = 1
-exit_codes['critical'] = 2
-exit_codes['unknown'] = 3
-exit_code = exit_codes['unknown']
-
-string_results = []
-string_perfdata = []
-
-def set_exit(status):
-    global exit_code
-    if exit_code == exit_codes['unknown']:
-        if status < exit_code:
-            exit_code = status
-    else:
-        if status > exit_code:
-            exit_code = status
-
-def table_grep(table, search_string):
-    global exit_code, exit_codes
-    for entry in table:
-        for mibO,value in entry:
-            if value == search_string:
-                print 'OK - string: ' + search_string + ' found at: ' + str(mibO)
-                set_exit(exit_codes['ok'])
-                exit(exit_code)
-    print 'Critical - string: ' + search_string + ' not found!'
-    set_exit(exit_codes['critical'])
-    exit(exit_code) 
-                
+################################################################################                
 
 ### Imports ###
 try:
@@ -73,13 +43,25 @@ try:
     # write permission to the running dir.
     os.environ['PYTHON_EGG_CACHE'] = "/var/spool/nagios/python-eggs/"
     import argparse
-    from snmp import *
+    import huji_cs_nagios
+    from huji_cs_snmp import *
 except Exception as e:
     print "UNKNOWN: " + str(e)
-    set_exit(exit_codes['unknown'])
-    exit(exit_code)
+    exit(3)
 
 ### End Imports ###
+
+def table_grep(table, search_string):
+    for entry in table:
+        for mibO,value in entry:
+            if value == search_string:
+                print 'OK - string: ' + search_string + ' found at: ' + str(mibO)
+                huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['ok'])
+                exit(huji_cs_nagios.exit_code)
+    print 'Critical - string: ' + search_string + ' not found!'
+    huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['critical'])
+    exit(huji_cs_nagios.exit_code) 
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__file__)
@@ -107,7 +89,7 @@ if __name__ == "__main__":
                        *args.oids)
     except Exception as e:
         print "UNKNOWN: " + str(e)
-        set_exit(exit_codes['unknown'])
-        exit(exit_code)
+        huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['unknown'])
+        exit(huji_cs_nagios.exit_code)
 
     table_grep(res, args.search_string)
