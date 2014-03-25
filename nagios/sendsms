@@ -30,6 +30,13 @@
 # 0 - success!
 # 2 - failure to send SMS.
 #
+# Dependencies:
+# huji_cs_nagios_config -- contains:
+# SMSPORT     - int
+# smsservers  - list of hostname strings
+# mail        - dict of mail related strings, keys: from, to, server
+# errorString - empty list to be filled by script 
+#
 # @author: E.S. Rosenberg (Keeper of the Keys) <esr at mail dot hebrew dot edu>
 # @license: GPLv2
 ################################################################################
@@ -44,15 +51,6 @@ except Exception as e:
     print 'Failed imports: ' + str(e)
     exit(2)
 
-# If ports ever get set per host just change the smsserver list to a list of
-# tuples.
-SMSPORT = 5000
-
-# Setup different available SMS sending hosts.
-smsservers = []
-smsservers.append('smsserver')
-smsservers.append('facundo')
-
 def sendSMS(message, cell, host, port):
     # The listener expects the following format: [cell#][:space:][message]
     # ie.: 0501111111 my message
@@ -60,15 +58,19 @@ def sendSMS(message, cell, host, port):
     # Message can contain \n for newlines.
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.sendto(cell + ' ' + message, (host, SMSPORT))
+        s.sendto(cell + ' ' + message, (host, port))
         answer = s.recv(32)
         s.close()
+
         # Currently the listener returns the number it sent the SMS followed 
         # by a message serial number in case of success, ie. 0501111111: 123
         if answer.startswith(cell) and re.search('(\d+)$', answer):
             return True
 
     except Exception as e:
+        err = 'Trying host: {} resulted in the following error:\n{}'.format(host,
+                                                                            e)
+        huji_cs_nagios_config.errorString.append(err)
         return False
 
 if __name__ == "__main__":
@@ -77,31 +79,43 @@ if __name__ == "__main__":
     parser.add_argument('message', help='"Message in quotes"', nargs = 1)
 
     args = parser.parse_args()
-    
-    for server in smsservers:
-        if sendSMS(args.message[0], args.cell[0], server, SMSPORT):
+
+    for server in huji_cs_nagios_config.smsservers:
+        if sendSMS(args.message[0], args.cell[0], 
+                   server, huji_cs_nagios_config.SMSPORT):
             exit(0) # If the message was sent succesfully we're done.
 
     # If this code is reached the world is coming to an end....
     try:
+        errorList=''
+        for error in huji_cs_nagios_config.errorString:
+            errorList += '\n' + str(error)
+        
         import smtplib
         from email.mime.text import MIMEText
-        email = MIMEText('Failed to send SMS with all sms servers, sending ' +
-                         'e-mail instead on the off chance someone survived '+
-                         'the zombie apocalypse and will read my important ' +
-                         'message:\n\n'+
-                         'Desired recipient: ' + args.cell[0] + '\n' +
-                         'Message content: ' + args.message[0])
+        text = str('Failed to send SMS with all sms servers, sending ' +
+                   'e-mail instead on the off chance someone survived '+
+                   'the zombie apocalypse and will read my important ' +
+                   'message:\n\n'                                      +
+                   'Desired recipient: {} \n'                          +
+                   'Message content: {} \n\n'                          +
+                   'Error list: '                                      +
+                   '{}').format(args.cell[0], args.message[0], errorList)
+        
+        email = MIMEText(text)
+
         email['Subject'] = 'Disaster has struck! Can\'t send SMS!'
-        email['From'] = 'nagios@cs.huji.ac.il'
-        email['To'] = 'system@cs.huji.ac.il'
-        s = smtplib.SMTP('mailhost.cs.huji.ac.il')
+        email['From'] = huji_cs_nagios_config.mail['from']
+        email['To'] = huji_cs_nagios_config.mail['to']
+        s = smtplib.SMTP(huji_cs_nagios_config.mail['server'])
         s.sendmail(email['From'], email['To'], email.as_string())
         s.quit()
-    except:
+    except Exception as e:
         # The disaster is clearly total, give up and start digging your grave.
+        print "Failed to mail" + str(e)
         exit(2)
     
     # Exit with nagios critical state code, I am not sure if nagios will check 
     # this, but if it does it should know there was a problem sending SMS.
+    print "Failed to SMS, error report mailed"
     exit(2)
