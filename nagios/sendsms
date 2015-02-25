@@ -58,7 +58,8 @@ def sendSMS(message, cell, host, port):
     # Message can contain \n for newlines.
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.sendto(cell + ' ' + message, (host, port))
+        s.connect((host, port))
+        s.sendall(cell + ' ' + message)
         answer = s.recv(32)
         s.close()
 
