@@ -78,6 +78,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(__file__)
     parser.add_argument('cell', help='Cellnumber', nargs = 1)
     parser.add_argument('message', help='"Message in quotes"', nargs = 1)
+    parser.add_argument('zabbix_message_body',
+                        help='The body of the message zabbix is trying to send,'+
+                             ' *this will be ignored*', nargs = '?')
 
     args = parser.parse_args()
 
