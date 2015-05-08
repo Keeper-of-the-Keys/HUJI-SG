@@ -1,0 +1,78 @@
+#!/bin/sh
+####################################################
+##  ___   ____       ____   ___  ## cs.huji.ac.il ##
+## |   | /   /       \   \ |   | ##    /\         ##
+## |   |/   /         \   \|   | ##   / /         ##
+## |       /       __  \       | ##   \_/         ##
+## |      /   ___ |  |_ \      | ##    _          ##
+## |      \  / _ \|   _|/      | ##   | |  __  _  ##
+## |       \/ / \ \  | /       | ##   | | /  \//  ##
+## |   |\   \ \_/ /  |/   /|   | ##   | |/ /\ \   ##
+## |___| \___\___/\__/___/ |___| ##   \_  /  \_\  ##
+##      KeeperoftheKeys.nl       ##    /_/        ##
+####################################################
+
+################################################################################
+# This is a simple script to create a bundle usable for the user for OpenVPN
+# It generates just a simple folder and a password protected zip file from the
+# folder, the folder should never be passed over an insecure medium since it
+# contains the users' private key, the zip file would ideally also not be sent
+# over insecure media due to the relative weakness of zips' protection.
+# However if there is no choice this is the best we have.
+#
+# Usage:
+#  ./huji-create-user-bundle user@dev -- will generate a user key/cert pair
+#  ./huji-create-user-bundle user@dev pass -- same but private key protected
+#
+# Requirements:
+# - Needs to be located in the directory of an Easy-RSA CA
+# -
+################################################################################
+
+echo_usage() {
+	          echo 'Usage:'
+		  echo $0 'user@dev - will generate a user key/cert pair'
+		  echo $0 'user@dev pass - will generate a user key/cert pair where'
+		  echo    '                  the private key is password protected.'
+}
+
+if [ $# -lt 1 ] || [ $# -gt 2 ];
+then
+	echo_usage
+	exit
+fi
+
+if ( [ $# -eq 2 ] && [ "$2" != "pass" ] )|| [ "$1" = "-h" ];
+then
+	echo_usage
+	exit
+fi
+
+huji_cert=$1
+huji_bundle_loc="huji-bundles"
+huji_zip_loc="huji-zips"
+
+if [ "$2" = "pass" ];
+then
+	./build-key-pass ${huji_cert}
+else
+        ./build-key ${huji_cert}
+fi
+
+if [ $? -eq 0 ];
+then
+    mkdir ${huji_bundle_loc}/${huji_cert}.tblk
+
+    cp ${KEY_DIR}/ca.crt ${huji_bundle_loc}/${huji_cert}.tblk/
+    cp ${KEY_DIR}/${huji_cert}.crt ${huji_bundle_loc}/${huji_cert}.tblk/
+    cp ${KEY_DIR}/${huji_cert}.key ${huji_bundle_loc}/${huji_cert}.tblk/
+
+    sed "s/HUJICERTNAME/${huji_cert}/g" openvpn.cs.huji.ac.il.ovpn > \
+    	${huji_bundle_loc}/${huji_cert}.tblk/openvpn.cs.huji.ac.il.ovpn
+
+    zip -er ${huji_zip_loc}/${huji_cert}.tblk.zip huji-bundles/${huji_cert}.tblk/
+else
+    echo "Building key failed returning: $?."
+fi
+
+exit
