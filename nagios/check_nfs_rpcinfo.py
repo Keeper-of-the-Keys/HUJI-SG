@@ -29,7 +29,7 @@
 try:
     import huji_cs_nagios
     import argparse
-    from subprocess import check_output
+    from subprocess import check_output, call
 except Exception as e:
     print "UNKNOWN: " + str(e)
     exit(3) # 3 is Nagios "unknown"
@@ -37,16 +37,22 @@ except Exception as e:
 ### End Imports ###
 
 def check_procs(host):
-    process_list = ["nfs", "mountd", "portmapper", "nlockmg"]
+    process_list = ["nfs", "mountd", "portmapper", "nlockmgr"]
 
     rpcinfo_output = check_output(["rpcinfo", "-p", host])
 
     for process in process_list:
         if(rpcinfo_output.find(process) == -1):
             huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['critical'])
-            huji_cs_nagios.string_results += ['process: {} not found in RPC'.format(
-                process
+            huji_cs_nagios.string_results += ['{}: {} not found in RPC'.format(
+                'process', process
             )]
+
+    for process in process_list:
+        print process
+        call(["rpcinfo", "-u", host, process])
+        print "tcp"
+        call(["rpcinfo", "-t", host, process])
 
     huji_cs_nagios.set_exit(huji_cs_nagios.exit_codes['ok'])
     if(huji_cs_nagios.exit_code == huji_cs_nagios.exit_codes['ok']):
