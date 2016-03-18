@@ -27,17 +27,31 @@ exit_codes['warning'] = 1
 exit_codes['critical'] = 2
 exit_codes['unknown'] = 3
 exit_code = exit_codes['unknown']
+exit_code_set = False
+
+counters = dict()
+counters['ok'] = 0
+counters['warning'] = 0
+counters['critical'] = 0
+counters['unknown'] = 0
 
 string_results = []
 string_perfdata = []
 
 def set_exit(status):
-    global exit_code
-    if exit_code == exit_codes['unknown']:
+    global exit_code, exit_code_set, exit_codes
+    if exit_code_set == False:
         if status < exit_code:
             exit_code = status
+        exit_code_set = True
     else:
-        if status > exit_code:
+        if exit_code > 0:
+            if status > 0 and status < exit_codes['unknown']:
+                if exit_code == exit_codes['unknown']:
+                    exit_code = status
+                elif status > exit_code:
+                    exit_code = status
+        elif status > exit_code:
             exit_code = status
 
 def output_and_exit():
